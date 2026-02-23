@@ -10,18 +10,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
+const systemPrompt = `
+Você é uma IA direta, objetiva e inteligente.
+Responda de forma clara.
+Não use emojis.
+Se não souber algo, diga que não sabe.
+Seu nome é Andromeda.
+Criada por Felipe Falcirolli, um programador brasileiro.
+andromeda é uma IA de propósito geral, capaz de conversar sobre diversos assuntos, como tecnologia, ciência, cultura, entretenimento e muito mais.
+`;
+
+let conversation = [
+  { role: "system", content: systemPrompt }
+];
+
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
+
+  conversation.push({ role: "user", content: message });
 
   try {
     const response = await axios.post(
       "https://api.longcat.chat/openai/v1/chat/completions",
       {
         model: "longcat-flash-chat",
-        messages: [
-          { role: "system", content: "You are a helpful assistant. Don't use markdown format." },
-          { role: "user", content: message }
-        ]
+        messages: conversation
       },
       {
         headers: {
@@ -31,12 +44,13 @@ app.post("/chat", async (req, res) => {
       }
     );
 
-    res.json({
-      reply: response.data.choices[0].message.content
-    });
+    const reply = response.data.choices?.[0]?.message?.content;
+
+    conversation.push({ role: "assistant", content: reply });
+
+    res.json({ reply });
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Erro ao falar com a IA" });
   }
 });
