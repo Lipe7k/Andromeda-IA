@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Longcat AI</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+  }
+</style>
+</head>
+
+<body class="bg-zinc-950 text-white flex flex-col h-screen">
+
+<div id="chat" class="flex-1 overflow-y-auto px-4 md:px-32 py-10 space-y-6"></div>
+
+<div class="border-t border-zinc-800 p-4 bg-zinc-950">
+  <div class="max-w-3xl mx-auto flex gap-3">
+    <input
+      id="input"
+      placeholder="Digite sua mensagem..."
+      class="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 focus:outline-none focus:border-zinc-600"
+      onkeydown="if(event.key==='Enter') send()"
+    />
+    <button
+      onclick="send()"
+      class="bg-white text-black px-6 rounded-2xl font-medium hover:opacity-80 transition"
+    >
+      Enviar
+    </button>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+
+function addMessage(text, role) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "flex " + (role === "user" ? "justify-end" : "justify-start");
+
+  const bubble = document.createElement("div");
+  bubble.className = `
+    max-w-xl px-5 py-3 rounded-2xl text-sm leading-relaxed
+    ${role === "user"
+      ? "bg-white text-black rounded-br-sm"
+      : "bg-zinc-800 text-white rounded-bl-sm"}
+  `;
+
+  bubble.innerText = text;
+
+  wrapper.appendChild(bubble);
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  const wrapper = document.createElement("div");
+  wrapper.id = "typing";
+  wrapper.className = "flex justify-start";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bg-zinc-800 px-5 py-3 rounded-2xl text-sm animate-pulse";
+  bubble.innerText = "Digitando...";
+
+  wrapper.appendChild(bubble);
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTyping() {
+  const typing = document.getElementById("typing");
+  if (typing) typing.remove();
+}
+
+async function send() {
+  const message = input.value.trim();
+  if (!message) return;
+
+  addMessage(message, "user");
+  input.value = "";
+  showTyping();
+
+  try {
+    const response = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await response.json();
+    removeTyping();
+    addMessage(data.reply || "Erro na resposta", "bot");
+  } catch {
+    removeTyping();
+    addMessage("Erro ao conectar com o servidor.", "bot");
+  }
+}
+</script>
+
+</body>
+</html>
